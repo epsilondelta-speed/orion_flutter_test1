@@ -23,13 +23,13 @@ android {
 }
 
 repositories {
-    flatDir {
-        dirs("libs") // 👈 Tells Gradle to look for .aar here
-    }
     google()
     mavenCentral()
+     flatDir {
+        dirs("libs") // 👈 Tells Gradle to look for .aar here
+    }
 }
 
 dependencies {
-    implementation(name = "orion_flutter-release", ext = "aar") // 👈 Your binary SDK
+   implementation(":orion_flutter-release@aar") // ✅ correct in .kts
 }
