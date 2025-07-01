@@ -1,45 +1,68 @@
-import 'package:flutter/material.dart';
 import 'dart:developer';
+import 'package:flutter/widgets.dart';
 import 'orion_flutter.dart';
 import 'orion_network_tracker.dart';
 
-/// Manual screen tracker for apps that use custom navigation (e.g., go_router, deep links).
-/// Allows you to explicitly track when screens start and finish.
 class OrionManualTracker {
-  static final Map<String, _ScreenMetrics> _screenMetrics = {};
+  static final Map<String, _ManualScreenMetrics> _screenMetrics = {};
 
-  /// Call this when navigating **away** from a screen.
-  static void finalizeScreen(String screenName) {
-    final metrics = _screenMetrics.remove(screenName);
-    metrics?.send();
-  }
-
-  /// Call this when navigating **to** a new screen.
+  /// 🔄 Start tracking a screen manually
   static void startTracking(String screenName) {
-    final metrics = _ScreenMetrics(screenName);
+    debugPrint("🚀 [Orion] startTracking() called for: $screenName");
+
+    if (_screenMetrics.containsKey(screenName)) {
+      debugPrint("⚠️ [Orion] Already tracking screen: $screenName. Skipping.");
+      return;
+    }
+
+    final metrics = _ManualScreenMetrics(screenName);
     _screenMetrics[screenName] = metrics;
     metrics.begin();
+
+    debugPrint("✅ [Orion] Started tracking screen: $screenName");
+  }
+
+  /// ✅ Finalize tracking and send beacon
+  static void finalizeScreen(String screenName) {
+    debugPrint("📥 [Orion] finalizeScreen() called for: $screenName");
+
+    final metrics = _screenMetrics.remove(screenName);
+
+    if (metrics == null) {
+      debugPrint("⚠️ [Orion] No tracking data found for: $screenName. Skipping send.");
+      return;
+    }
+
+    metrics.send();
+    debugPrint("📤 [Orion] Sent metrics for screen: $screenName");
+  }
+
+  static bool hasTracked(String screenName) {
+    final exists = _screenMetrics.containsKey(screenName);
+    debugPrint("🔍 [Orion] hasTracked($screenName): $exists");
+    return exists;
   }
 }
 
-class _ScreenMetrics {
+class _ManualScreenMetrics {
   final String screenName;
   final Stopwatch _stopwatch = Stopwatch();
   int _ttid = -1;
   bool _ttfdCaptured = false;
 
-  _ScreenMetrics(this.screenName);
+  _ManualScreenMetrics(this.screenName);
 
   void begin() {
     _stopwatch.start();
+    debugPrint("⏱️ [Orion] Stopwatch started for $screenName");
 
-    // Capture TTID: first frame render complete
+    // TTID: after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _ttid = _stopwatch.elapsedMilliseconds;
       debugPrint("📏 [$screenName] TTID: $_ttid ms");
     });
 
-    // Capture TTFD, Janky, Frozen after layout stabilizes
+    // TTFD and frame data
     WidgetsBinding.instance.addPersistentFrameCallback((_) {
       if (_ttfdCaptured) return;
       _ttfdCaptured = true;
@@ -49,11 +72,11 @@ class _ScreenMetrics {
         final janky = _mockJankyFrames();
         final frozen = _mockFrozenFrames();
 
-        debugPrint("📏 [$screenName] TTFD: $ttfd ms | Janky: $janky | Frozen: $frozen");
-
         _ttfdFinal = ttfd;
         _jankyFinal = janky;
         _frozenFinal = frozen;
+
+        debugPrint("📏 [$screenName] TTFD: $ttfd ms | Janky: $janky | Frozen: $frozen");
       });
     });
   }
@@ -64,7 +87,8 @@ class _ScreenMetrics {
 
   void send() {
     final networkData = OrionNetworkTracker.consumeRequestsForScreen(screenName);
-    debugPrint("📦 Sending screen metrics for $screenName with ${networkData.length} requests");
+
+    debugPrint("📦 [Orion] Preparing beacon for $screenName with ${networkData.length} network entries");
 
     OrionFlutter.trackFlutterScreen(
       screen: screenName,
