@@ -6,21 +6,26 @@ import 'orion_network_tracker.dart';
 class OrionManualTracker {
   static final Map<String, _ManualScreenMetrics> _screenMetrics = {};
 
-  /// 🔄 Start tracking a screen manually
-  static void startTracking(String screenName) {
-    debugPrint("🚀 [Orion] startTracking() called for: $screenName");
+/// 🔄 Start tracking a screen manually
+static void startTracking(String screenName) {
+  debugPrint("🚀 [Orion] startTracking() called for: $screenName");
 
-    if (_screenMetrics.containsKey(screenName)) {
-      debugPrint("⚠️ [Orion] Already tracking screen: $screenName. Skipping.");
-      return;
-    }
-
-    final metrics = _ManualScreenMetrics(screenName);
-    _screenMetrics[screenName] = metrics;
-    metrics.begin();
-
-    debugPrint("✅ [Orion] Started tracking screen: $screenName");
+  if (_screenMetrics.containsKey(screenName)) {
+    debugPrint("⚠️ [Orion] Already tracking screen: $screenName. Skipping.");
+    return;
   }
+
+  // Set current screen context for network tracking
+  OrionNetworkTracker.setCurrentScreen(screenName);
+  debugPrint("📍 OrionManualTracker: currentScreenName set to $screenName");
+
+  // Start stopwatch and TTID/TTFD tracking
+  final metrics = _ManualScreenMetrics(screenName);
+  _screenMetrics[screenName] = metrics;
+  metrics.begin();
+
+  debugPrint("✅ [Orion] Started tracking screen: $screenName");
+}
 
   /// ✅ Finalize tracking and send beacon
   static void finalizeScreen(String screenName) {
