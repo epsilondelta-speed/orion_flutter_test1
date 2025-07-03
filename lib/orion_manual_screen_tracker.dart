@@ -6,6 +6,7 @@ import 'orion_network_tracker.dart';
 class OrionManualTracker {
   static final Map<String, _ManualScreenMetrics> _screenMetrics = {};
   static final List<String> _screenHistoryStack = [];
+  static String? _lastFinalizedScreen;
 
   /// 🔄 Start tracking a screen manually
   static void startTracking(String screenName) {
@@ -50,10 +51,25 @@ class OrionManualTracker {
     }
 
     metrics.send();
+    _lastFinalizedScreen = screenName;
     debugPrint("📤 [Orion] Sent metrics for screen: $screenName");
   }
 
-  /// 📦 Peek the previous screen from stack (for back navigation)
+  /// 🔁 Resume tracking for previous screen (used in dispose for back)
+  static void resumePreviousScreen() {
+    if (_lastFinalizedScreen == null) {
+      debugPrint("⚠️ [Orion] No previous screen to resume");
+      return;
+    }
+
+    final previous = _lastFinalizedScreen!;
+    startTracking(previous);
+    debugPrint("🔁 [Orion] Resumed tracking for previous screen: $previous");
+
+    _lastFinalizedScreen = null;
+  }
+
+  /// 📦 Peek the previous screen from stack (optional, not used now)
   static String? getLastTrackedScreen() {
     if (_screenHistoryStack.length >= 2) {
       return _screenHistoryStack[_screenHistoryStack.length - 2];
