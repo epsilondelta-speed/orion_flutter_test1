@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'package:flutter/widgets.dart';
 import 'orion_flutter.dart';
 import 'orion_network_tracker.dart';
@@ -6,7 +5,6 @@ import 'orion_network_tracker.dart';
 class OrionManualTracker {
   static final Map<String, _ManualScreenMetrics> _screenMetrics = {};
   static final List<String> _screenHistoryStack = [];
-  static String? _lastFinalizedScreen;
 
   /// 🔄 Start tracking a screen manually
   static void startTracking(String screenName) {
@@ -17,9 +15,11 @@ class OrionManualTracker {
       return;
     }
 
-    // 📚 Push to screen history
-    _screenHistoryStack.add(screenName);
-    debugPrint("📚 [Orion] Pushed $screenName to screen history");
+    // 📚 Push to screen history (prevent duplicate consecutive entries)
+    if (_screenHistoryStack.isEmpty || _screenHistoryStack.last != screenName) {
+      _screenHistoryStack.add(screenName);
+      debugPrint("📚 [Orion] Pushed $screenName to screen history");
+    }
 
     // Set current screen context for network tracking
     OrionNetworkTracker.setCurrentScreen(screenName);
@@ -51,25 +51,21 @@ class OrionManualTracker {
     }
 
     metrics.send();
-    _lastFinalizedScreen = screenName;
     debugPrint("📤 [Orion] Sent metrics for screen: $screenName");
   }
 
-  /// 🔁 Resume tracking for previous screen (used in dispose for back)
+  /// 🧠 Resume previous screen from stack (for back navigation)
   static void resumePreviousScreen() {
-    if (_lastFinalizedScreen == null) {
-      debugPrint("⚠️ [Orion] No previous screen to resume");
-      return;
+    if (_screenHistoryStack.length >= 1) {
+      final previous = _screenHistoryStack.last;
+      debugPrint("🔁 [Orion] Resumed tracking for previous screen: $previous");
+      startTracking(previous);
+    } else {
+      debugPrint("⚠️ [Orion] No previous screen to resume in stack");
     }
-
-    final previous = _lastFinalizedScreen!;
-    startTracking(previous);
-    debugPrint("🔁 [Orion] Resumed tracking for previous screen: $previous");
-
-    _lastFinalizedScreen = null;
   }
 
-  /// 📦 Peek the previous screen from stack (optional, not used now)
+  /// 🔍 Peek the second-last screen name (without modifying stack)
   static String? getLastTrackedScreen() {
     if (_screenHistoryStack.length >= 2) {
       return _screenHistoryStack[_screenHistoryStack.length - 2];
