@@ -112,6 +112,8 @@ class _ManualScreenMetrics {
         _ttfdFinal = ttfd;
         _jankyFinal = janky;
         _frozenFinal = frozen;
+
+        debugPrint("📏 [$screenName] TTFD: $ttfd ms | Janky: $janky | Frozen: $frozen");
       });
     });
   }
