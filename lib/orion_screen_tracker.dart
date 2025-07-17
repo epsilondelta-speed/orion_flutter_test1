@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
-import 'dart:developer';
 import 'orion_flutter.dart';
 import 'orion_network_tracker.dart';
+import 'orion_logger.dart';
 
 /// A RouteObserver that tracks screen metrics (TTID, TTFD, janky, frozen) per Flutter screen
 class OrionScreenTracker extends RouteObserver<PageRoute<dynamic>> {
   final Map<String, _ScreenMetrics> _screenMetrics = {};
 
-  @override
   void didPush(Route route, Route? previousRoute) {
     super.didPush(route, previousRoute);
+
+    // ✅ Send previous screen metrics BEFORE starting new screen
+    _finalizeTracking(previousRoute);
+
     _updateCurrentScreen(route);
     _startTracking(route);
+
   }
 
   @override
@@ -31,7 +35,7 @@ class OrionScreenTracker extends RouteObserver<PageRoute<dynamic>> {
     if (route is PageRoute) {
       final screenName = route.settings.name ?? route.runtimeType.toString();
       OrionNetworkTracker.setCurrentScreen(screenName);
-      debugPrint("📍 OrionNetworkTracker: currentScreenName set to $screenName");
+      orionPrint("OrionNetworkTracker currentScreenName set to $screenName");
     }
   }
 
@@ -51,6 +55,8 @@ class OrionScreenTracker extends RouteObserver<PageRoute<dynamic>> {
       metrics?.send();
     }
   }
+
+
 }
 
 class _ScreenMetrics {
@@ -80,8 +86,6 @@ class _ScreenMetrics {
         final janky = _mockJankyFrames();
         final frozen = _mockFrozenFrames();
 
-        debugPrint("📏 [$screenName] TTFD: $ttfd ms | Janky: $janky | Frozen: $frozen");
-
         // Save for later if needed in send()
         _ttfdFinal = ttfd;
         _jankyFinal = janky;
@@ -96,7 +100,6 @@ class _ScreenMetrics {
 
   void send() {
     final networkData = OrionNetworkTracker.consumeRequestsForScreen(screenName);
-    debugPrint("📦 Sending screen metrics for $screenName with ${networkData.length} requests");
 
     OrionFlutter.trackFlutterScreen(
       screen: screenName,

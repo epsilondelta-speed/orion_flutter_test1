@@ -1,6 +1,7 @@
 import 'orion_flutter_platform_interface.dart';
 import 'package:flutter/services.dart';
 
+
 class OrionFlutter {
 
   static const MethodChannel _channel = MethodChannel('orion_flutter');
@@ -32,7 +33,7 @@ class OrionFlutter {
       'stack': stack,
       'library': library ?? '',
       'context': context ?? '',
-      'screen': screen ?? 'UnknownScreen2',
+      'screen': screen ?? 'UnknownScreen',
       'network': network ?? [],
     });
   }
@@ -89,4 +90,7 @@ class OrionFlutter {
       "network": network,
     });
   }
+
+
+
 }
